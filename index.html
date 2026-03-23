@@ -19,1008 +19,868 @@
     --text-dim: #5a6a7a;
     --mono:     'Share Tech Mono', monospace;
     --sans:     'Barlow Condensed', sans-serif;
+    --header-h: 36px;
+    --panel-w:  200px;
+    --bottom-h: 190px;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+  html, body {
+    background:var(--bg); color:var(--text);
+    font-family:var(--sans);
+    width:100%; height:100%;
+    overflow:hidden; position:fixed;
   }
 
-  /* ── HEADER ── */
+  /* ═══ LAYOUT SHELL ═══ */
+  #shell {
+    display:grid;
+    width:100%; height:100%;
+    grid-template-rows: var(--header-h) 1fr;
+    grid-template-columns: 1fr var(--panel-w);
+    grid-template-areas: "hdr hdr" "map pnl";
+  }
+
+  /* ═══ HEADER ═══ */
   header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--panel);
-    flex-shrink: 0;
+    grid-area:hdr;
+    display:flex; align-items:center; gap:9px;
+    padding:0 11px;
+    background:var(--panel); border-bottom:1px solid var(--border);
+    z-index:10; overflow:hidden; flex-shrink:0;
   }
-  .logo {
-    font-family: var(--mono);
-    font-size: 1.1rem;
-    color: var(--accent);
-    letter-spacing: 2px;
-  }
-  .logo span { color: var(--text-dim); }
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: background .3s;
-    flex-shrink: 0;
-  }
-  .status-dot.active { background: var(--accent3); box-shadow: 0 0 6px var(--accent3); animation: pulse 1.5s infinite; }
-  .status-dot.error  { background: var(--accent2); }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-  .status-label { font-family: var(--mono); font-size: .7rem; color: var(--text-dim); flex: 1; }
+  .logo { font-family:var(--mono); font-size:.9rem; color:var(--accent); letter-spacing:2px; white-space:nowrap; }
+  .logo span { color:var(--text-dim); }
+  .status-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:background .3s; }
+  .status-dot.active { background:var(--accent3); box-shadow:0 0 5px var(--accent3); animation:blink 1.5s infinite; }
+  .status-dot.error  { background:var(--accent2); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  #statusLabel { font-family:var(--mono); font-size:.58rem; color:var(--text-dim); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-  /* ── MAIN LAYOUT ── */
-  .main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    gap: 0;
+  /* metrics in header (landscape mobile) */
+  .hdr-metrics { display:none; gap:10px; align-items:center; margin-left:auto; flex-shrink:0; }
+  .hdr-m { font-family:var(--mono); font-size:.62rem; white-space:nowrap; color:var(--text-dim); }
+  .hdr-m b { color:var(--accent); }
+
+  /* panel toggle button */
+  #panelToggle {
+    display:none;
+    width:28px; height:28px; flex-shrink:0;
+    background:var(--bg); border:1px solid var(--border);
+    color:var(--text); border-radius:4px;
+    align-items:center; justify-content:center;
+    cursor:pointer; font-size:.85rem;
   }
 
-  /* ── CANVAS AREA ── */
-  .canvas-wrap {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    background:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 40px 40px;
-    background-color: var(--bg);
+  /* ═══ MAP ═══ */
+  #canvasWrap {
+    grid-area:map;
+    position:relative; overflow:hidden;
+    background:var(--bg);
   }
   canvas#map {
-    position: absolute;
-    top: 0; left: 0;
-    cursor: crosshair;
-    touch-action: none;
+    position:absolute; top:0; left:0;
+    touch-action:none; cursor:crosshair;
   }
-
-  /* Scale ruler */
   .ruler {
-    position: absolute;
-    bottom: 14px;
-    left: 14px;
-    display: flex;
-    align-items: flex-end;
-    gap: 6px;
-    font-family: var(--mono);
-    font-size: .65rem;
-    color: var(--text-dim);
+    position:absolute; bottom:12px; left:12px;
+    display:flex; align-items:flex-end; gap:5px;
+    font-family:var(--mono); font-size:.58rem; color:var(--text-dim); pointer-events:none;
   }
-  .ruler-bar {
-    width: 60px;
-    height: 6px;
-    border: 1px solid var(--text-dim);
-    border-top: none;
-    position: relative;
-  }
-
-  /* Map overlay buttons */
+  .ruler-bar { width:50px; height:5px; border:1px solid var(--text-dim); border-top:none; }
   .map-btns {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    position:absolute; top:10px; right:10px;
+    display:flex; flex-direction:column; gap:5px;
   }
   .map-btn {
-    width: 36px; height: 36px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: border-color .2s, color .2s;
-    border-radius: 4px;
+    width:34px; height:34px;
+    background:rgba(16,20,26,.88); backdrop-filter:blur(4px);
+    border:1px solid var(--border); color:var(--text);
+    font-size:.9rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:4px; transition:border-color .15s, color .15s;
   }
-  .map-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* ── SIDE PANEL ── */
-  .panel {
-    width: 240px;
-    flex-shrink: 0;
-    background: var(--panel);
-    border-left: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+  .map-btn:active, .map-btn:hover { border-color:var(--accent); color:var(--accent); }
+  #dragHint {
+    position:absolute; bottom:12px; right:10px;
+    font-family:var(--mono); font-size:.52rem; color:var(--text-dim);
+    pointer-events:none; opacity:.5;
   }
 
-  .section {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border);
+  /* ═══ SIDE PANEL ═══ */
+  #panel {
+    grid-area:pnl;
+    background:var(--panel); border-left:1px solid var(--border);
+    display:flex; flex-direction:column; overflow:hidden;
+    transition:transform .22s ease;
   }
-  .section-title {
-    font-family: var(--mono);
-    font-size: .6rem;
-    color: var(--accent);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-
-  /* Metrics grid */
-  .metrics {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .metric {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    padding: 8px;
-    border-radius: 3px;
-  }
-  .metric-label {
-    font-family: var(--mono);
-    font-size: .55rem;
-    color: var(--text-dim);
-    margin-bottom: 3px;
-  }
-  .metric-value {
-    font-family: var(--mono);
-    font-size: 1.1rem;
-    color: var(--accent);
-    line-height: 1;
-  }
-  .metric-value.green { color: var(--accent3); }
-  .metric-value.red   { color: var(--accent2); }
-  .metric-unit {
-    font-size: .55rem;
-    color: var(--text-dim);
+  .section { padding:9px 11px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .sec-title {
+    font-family:var(--mono); font-size:.52rem; color:var(--accent);
+    letter-spacing:2px; text-transform:uppercase; margin-bottom:7px;
   }
 
-  /* Buttons */
-  .btn-row { display: flex; gap: 6px; margin-top: 8px; }
-  .btn {
-    flex: 1;
-    padding: 8px 4px;
-    font-family: var(--mono);
-    font-size: .65rem;
-    letter-spacing: 1px;
-    border: 1px solid var(--muted);
-    background: transparent;
-    color: var(--text);
-    cursor: pointer;
-    transition: all .2s;
-    text-transform: uppercase;
-    border-radius: 3px;
-  }
-  .btn:hover { border-color: var(--accent); color: var(--accent); }
-  .btn.primary { border-color: var(--accent); color: var(--accent); }
-  .btn.primary:hover { background: var(--accent); color: var(--bg); }
-  .btn.danger { border-color: var(--accent2); color: var(--accent2); }
-  .btn.danger:hover { background: var(--accent2); color: #fff; }
-  .btn.success { border-color: var(--accent3); color: var(--accent3); }
-  .btn.success:hover { background: var(--accent3); color: var(--bg); }
-
-  /* Step length calibration */
-  .slider-wrap { margin-top: 8px; }
-  .slider-label {
-    display: flex;
-    justify-content: space-between;
-    font-family: var(--mono);
-    font-size: .6rem;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-  }
-  input[type=range] {
-    width: 100%;
-    accent-color: var(--accent);
-    height: 4px;
-  }
-
-  /* Waypoints list */
-  .waypoints-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px 14px;
-  }
-  .waypoint-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-    font-family: var(--mono);
-    font-size: .65rem;
-  }
-  .wp-badge {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: var(--accent2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: .55rem;
-    flex-shrink: 0;
-    font-weight: bold;
-    color: #fff;
-  }
-  .wp-info { flex: 1; color: var(--text-dim); }
-  .wp-del {
-    color: var(--muted);
-    cursor: pointer;
-    font-size: .8rem;
-    transition: color .2s;
-    background: none;
-    border: none;
-    padding: 0 2px;
-  }
-  .wp-del:hover { color: var(--accent2); }
-
-  /* Log */
-  .log {
-    height: 80px;
-    overflow-y: auto;
-    padding: 6px 14px;
-    background: var(--bg);
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .log-line {
-    font-family: var(--mono);
-    font-size: .58rem;
-    color: var(--text-dim);
-    line-height: 1.6;
-  }
-  .log-line.info { color: var(--accent); }
-  .log-line.warn { color: #ffb347; }
-  .log-line.err  { color: var(--accent2); }
-
-  /* Permission overlay */
-  #overlay {
-    position: fixed; inset: 0;
-    background: rgba(10,12,15,.95);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 16px;
-    z-index: 100;
-    padding: 32px;
-    text-align: center;
-  }
-  #overlay h2 {
-    font-family: var(--mono);
-    color: var(--accent);
-    font-size: 1.2rem;
-    letter-spacing: 3px;
-  }
-  #overlay p {
-    font-size: .95rem;
-    color: var(--text-dim);
-    max-width: 300px;
-    line-height: 1.6;
-  }
-  #overlay .warning {
-    background: rgba(255,77,109,.1);
-    border: 1px solid var(--accent2);
-    color: var(--text);
-    padding: 10px 14px;
-    border-radius: 4px;
-    font-size: .8rem;
-    max-width: 320px;
-  }
-  #startBtn {
-    padding: 14px 32px;
-    font-family: var(--mono);
-    font-size: .9rem;
-    letter-spacing: 2px;
-    border: 2px solid var(--accent);
-    background: transparent;
-    color: var(--accent);
-    cursor: pointer;
-    transition: all .2s;
-    text-transform: uppercase;
-  }
-  #startBtn:hover { background: var(--accent); color: var(--bg); }
-
-  /* Tooltip */
-  .tooltip {
-    position: absolute;
-    background: var(--panel);
-    border: 1px solid var(--accent);
-    padding: 4px 8px;
-    font-family: var(--mono);
-    font-size: .6rem;
-    color: var(--accent);
-    pointer-events: none;
-    border-radius: 3px;
-    white-space: nowrap;
-    display: none;
-  }
-
-  /* Heading indicator */
+  /* compass */
   .compass {
-    width: 48px; height: 48px;
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    position: relative;
-    margin: 0 auto 8px;
-    background: var(--bg);
+    width:38px; height:38px; border:1px solid var(--border);
+    border-radius:50%; position:relative; margin:0 auto 7px; background:var(--bg);
   }
   .compass-needle {
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 2px; height: 18px;
-    background: var(--accent2);
-    transform-origin: bottom center;
-    transform: translateX(-50%) translateY(-100%) rotate(0deg);
-    transition: transform .1s linear;
-    border-radius: 1px;
+    position:absolute; top:50%; left:50%;
+    width:2px; height:14px; background:var(--accent2);
+    transform-origin:bottom center;
+    transform:translateX(-50%) translateY(-100%) rotate(0deg);
+    transition:transform .1s linear; border-radius:1px;
   }
-  .compass-n {
-    position: absolute;
-    top: 4px; left: 50%;
-    transform: translateX(-50%);
-    font-family: var(--mono);
-    font-size: .5rem;
-    color: var(--text-dim);
+  .compass-n { position:absolute; top:3px; left:50%; transform:translateX(-50%); font-family:var(--mono); font-size:.42rem; color:var(--text-dim); }
+
+  /* metrics */
+  .metrics { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .metric { background:var(--bg); border:1px solid var(--border); padding:5px 6px; border-radius:3px; }
+  .metric-label { font-family:var(--mono); font-size:.47rem; color:var(--text-dim); margin-bottom:2px; }
+  .metric-value { font-family:var(--mono); font-size:.88rem; color:var(--accent); line-height:1; }
+  .metric-value.green { color:var(--accent3); }
+  .metric-unit { font-size:.47rem; color:var(--text-dim); }
+
+  /* buttons */
+  .btn-row { display:flex; gap:5px; margin-top:6px; }
+  .btn {
+    flex:1; padding:6px 2px;
+    font-family:var(--mono); font-size:.55rem; letter-spacing:.5px;
+    border:1px solid var(--muted); background:transparent; color:var(--text);
+    cursor:pointer; transition:all .15s; text-transform:uppercase; border-radius:3px;
+  }
+  .btn:active,.btn:hover { border-color:var(--accent); color:var(--accent); }
+  .btn.primary { border-color:var(--accent); color:var(--accent); }
+  .btn.primary:active,.btn.primary:hover { background:var(--accent); color:var(--bg); }
+  .btn.danger  { border-color:var(--accent2); color:var(--accent2); }
+  .btn.danger:active,.btn.danger:hover  { background:var(--accent2); color:#fff; }
+  .btn.success { border-color:var(--accent3); color:var(--accent3); }
+  .btn.success:active,.btn.success:hover { background:var(--accent3); color:var(--bg); }
+
+  /* sliders */
+  .slider-wrap { margin-top:5px; }
+  .slider-label { display:flex; justify-content:space-between; font-family:var(--mono); font-size:.52rem; color:var(--text-dim); margin-bottom:2px; }
+  input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; }
+
+  /* waypoints */
+  .wp-sec-title {
+    font-family:var(--mono); font-size:.52rem; color:var(--accent);
+    letter-spacing:2px; text-transform:uppercase;
+    padding:7px 11px 3px; flex-shrink:0;
+  }
+  .waypoints-list { flex:1; overflow-y:auto; padding:0 11px 6px; }
+  .waypoint-item {
+    display:flex; align-items:center; gap:6px;
+    padding:5px 0; border-bottom:1px solid var(--border);
+  }
+  .wp-badge {
+    width:16px; height:16px; border-radius:50%;
+    background:var(--accent2); display:flex; align-items:center; justify-content:center;
+    font-size:.48rem; font-weight:bold; color:#fff; flex-shrink:0;
+  }
+  .wp-info { flex:1; overflow:hidden; }
+  .wp-name-edit {
+    background:none; border:none; border-bottom:1px solid var(--border);
+    color:var(--text); font-family:var(--mono); font-size:.58rem;
+    width:100%; padding:1px 0; outline:none;
+  }
+  .wp-name-edit:focus { border-color:var(--accent); color:var(--accent); }
+  .wp-coords { font-family:var(--mono); font-size:.46rem; color:var(--text-dim); margin-top:1px; }
+  .wp-del {
+    color:var(--muted); cursor:pointer; font-size:.7rem;
+    background:none; border:none; padding:0 2px; flex-shrink:0; transition:color .15s;
+  }
+  .wp-del:hover { color:var(--accent2); }
+  .wp-dragging-list { opacity:.35; }
+
+  /* log */
+  .log { height:58px; overflow-y:auto; padding:5px 11px; background:var(--bg); border-top:1px solid var(--border); flex-shrink:0; }
+  .log-line { font-family:var(--mono); font-size:.5rem; color:var(--text-dim); line-height:1.65; }
+  .log-line.info { color:var(--accent); }
+  .log-line.warn { color:#ffb347; }
+  .log-line.err  { color:var(--accent2); }
+
+  /* ═══ OVERLAY ═══ */
+  #overlay {
+    position:fixed; inset:0;
+    background:rgba(10,12,15,.96);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:14px; z-index:200; padding:20px; text-align:center;
+  }
+  #overlay h2 { font-family:var(--mono); color:var(--accent); font-size:1.05rem; letter-spacing:3px; }
+  #overlay p  { font-size:.88rem; color:var(--text-dim); max-width:280px; line-height:1.6; }
+  #overlay .warning {
+    background:rgba(255,77,109,.07); border:1px solid rgba(255,77,109,.5);
+    color:var(--text); padding:10px 14px; border-radius:4px;
+    font-size:.73rem; max-width:300px; line-height:1.55;
+  }
+  #startBtn {
+    padding:11px 26px; font-family:var(--mono); font-size:.82rem;
+    letter-spacing:2px; border:2px solid var(--accent);
+    background:transparent; color:var(--accent);
+    cursor:pointer; transition:all .2s; text-transform:uppercase; border-radius:3px;
+  }
+  #startBtn:hover, #startBtn:active { background:var(--accent); color:var(--bg); }
+
+  /* ═══ WP POPUP ═══ */
+  #wpPopup {
+    position:fixed; z-index:150;
+    background:var(--panel); border:1px solid var(--accent);
+    border-radius:6px; padding:11px 13px;
+    box-shadow:0 4px 24px rgba(0,0,0,.65);
+    display:none; flex-direction:column; gap:7px;
+    min-width:175px;
+  }
+  #wpPopup label { font-family:var(--mono); font-size:.52rem; color:var(--text-dim); letter-spacing:1px; }
+  #wpPopupName {
+    background:var(--bg); border:1px solid var(--border);
+    color:var(--accent); font-family:var(--mono); font-size:.68rem;
+    padding:5px 7px; border-radius:3px; outline:none; width:100%;
+  }
+  #wpPopupName:focus { border-color:var(--accent); }
+  .popup-row { display:flex; gap:5px; }
+  .popup-btn {
+    flex:1; padding:6px 3px; font-family:var(--mono); font-size:.57rem;
+    border:1px solid var(--muted); background:transparent; color:var(--text);
+    cursor:pointer; border-radius:3px; transition:all .15s; text-transform:uppercase;
+  }
+  .popup-btn.ok  { border-color:var(--accent3); color:var(--accent3); }
+  .popup-btn.ok:hover { background:var(--accent3); color:var(--bg); }
+  .popup-btn.del { border-color:var(--accent2); color:var(--accent2); }
+  .popup-btn.del:hover { background:var(--accent2); color:#fff; }
+  .popup-btn.cancel:hover { border-color:var(--text); color:var(--text); }
+
+  /* ═══ MOBILE LANDSCAPE ═══ */
+  @media (max-height:500px) and (orientation:landscape) {
+    :root { --header-h:30px; }
+    #shell {
+      grid-template-columns:1fr;
+      grid-template-rows:var(--header-h) 1fr;
+      grid-template-areas:"hdr" "map";
+    }
+    #panel {
+      position:fixed; top:var(--header-h); right:0; bottom:0;
+      width:210px; z-index:50;
+      border-left:1px solid var(--border);
+      transform:translateX(100%);
+      grid-area:unset;
+    }
+    #panel.open { transform:translateX(0); }
+    .hdr-metrics { display:flex; }
+    #panelToggle  { display:flex; }
   }
 
-  @media (max-width: 600px) {
-    .panel { width: 200px; }
-    .metrics { grid-template-columns: 1fr 1fr; }
+  /* ═══ NARROW PORTRAIT ═══ */
+  @media (max-width:480px) and (orientation:portrait) {
+    :root { --header-h:32px; }
+    #shell {
+      grid-template-columns:1fr;
+      grid-template-rows:var(--header-h) 1fr var(--bottom-h);
+      grid-template-areas:"hdr" "map" "pnl";
+    }
+    #panel {
+      grid-area:pnl; width:100%; border-left:none;
+      border-top:1px solid var(--border);
+      height:var(--bottom-h);
+      flex-direction:row; overflow-x:auto; overflow-y:hidden;
+    }
+    #panel .section { flex-shrink:0; width:155px; border-bottom:none; border-right:1px solid var(--border); overflow:hidden; }
+    .wp-sec-title,.waypoints-list,.log { display:none; }
   }
 </style>
 </head>
 <body>
 
-<!-- Permission overlay -->
+<!-- Overlay -->
 <div id="overlay">
   <h2>INDOORTRACE</h2>
-  <p>PDR Indoor Mapping — Pedestrian Dead Reckoning via accéléromètre & gyroscope</p>
+  <p>PDR Indoor Mapping — Pedestrian Dead Reckoning</p>
   <div class="warning">
-    ⚠️ <strong>Orientez le téléphone en paysage</strong> ou tenez-le à la main en marchant normalement.<br><br>
-    L'app va demander l'accès aux <strong>capteurs de mouvement</strong>.
+    ⚠️ Tenez le téléphone à la main en marchant normalement.<br><br>
+    <strong>Tap long</strong> sur la carte → nouveau waypoint<br>
+    <strong>Tap</strong> sur un WP → renommer / supprimer<br>
+    <strong>Glisser</strong> un WP → déplacer
   </div>
-  <p style="font-size:.8rem">Tap long sur la carte pour poser un <strong>point de recalage</strong> manuel.</p>
   <button id="startBtn">DÉMARRER</button>
 </div>
 
-<header>
-  <div class="logo">INDOOR<span>TRACE</span></div>
-  <div class="status-dot" id="statusDot"></div>
-  <div class="status-label" id="statusLabel">EN ATTENTE</div>
-</header>
+<!-- WP Popup -->
+<div id="wpPopup">
+  <label>NOM DU WAYPOINT</label>
+  <input id="wpPopupName" type="text" maxlength="24">
+  <div class="popup-row">
+    <button class="popup-btn ok"     id="ppOk">✓ OK</button>
+    <button class="popup-btn cancel" id="ppCancel">✕</button>
+    <button class="popup-btn del"    id="ppDel">🗑</button>
+  </div>
+</div>
 
-<div class="main">
-  <!-- MAP -->
-  <div class="canvas-wrap" id="canvasWrap">
+<div id="shell">
+  <header>
+    <div class="logo">INDOOR<span>TRACE</span></div>
+    <div class="status-dot" id="statusDot"></div>
+    <div id="statusLabel">EN ATTENTE</div>
+    <div class="hdr-metrics" id="hdrMetrics">
+      <div class="hdr-m">PAS <b id="hSteps">0</b></div>
+      <div class="hdr-m">DIST <b id="hDist">0.0m</b></div>
+      <div class="hdr-m">CAP <b id="hHead">–°</b></div>
+    </div>
+    <button id="panelToggle">☰</button>
+  </header>
+
+  <div id="canvasWrap">
     <canvas id="map"></canvas>
-    <div class="ruler">
-      <div class="ruler-bar"></div>
-      <span id="rulerLabel">1 m</span>
-    </div>
+    <div class="ruler"><div class="ruler-bar"></div><span id="rulerLabel">1 m</span></div>
     <div class="map-btns">
-      <button class="map-btn" id="zoomIn"  title="Zoom +">+</button>
-      <button class="map-btn" id="zoomOut" title="Zoom −">−</button>
-      <button class="map-btn" id="centerBtn" title="Centrer">◎</button>
+      <button class="map-btn" id="zoomIn">+</button>
+      <button class="map-btn" id="zoomOut">−</button>
+      <button class="map-btn" id="centerBtn">◎</button>
     </div>
-    <div class="tooltip" id="tooltip"></div>
+    <div id="dragHint">↔ glisser WP</div>
   </div>
 
-  <!-- PANEL -->
-  <div class="panel">
+  <div id="panel">
     <div class="section">
-      <div class="section-title">CAPTEURS</div>
-      <div class="compass" id="compass">
-        <div class="compass-n">N</div>
-        <div class="compass-needle" id="needle"></div>
-      </div>
+      <div class="sec-title">CAPTEURS</div>
+      <div class="compass"><div class="compass-n">N</div><div class="compass-needle" id="needle"></div></div>
       <div class="metrics">
-        <div class="metric">
-          <div class="metric-label">PAS</div>
-          <div class="metric-value green" id="mSteps">0</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">DIST</div>
-          <div class="metric-value" id="mDist">0.0<span class="metric-unit"> m</span></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">CAP</div>
-          <div class="metric-value" id="mHeading">–<span class="metric-unit">°</span></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">ACC</div>
-          <div class="metric-value" id="mAcc">–<span class="metric-unit"> m/s²</span></div>
-        </div>
+        <div class="metric"><div class="metric-label">PAS</div><div class="metric-value green" id="mSteps">0</div></div>
+        <div class="metric"><div class="metric-label">DIST</div><div class="metric-value" id="mDist">0.0<span class="metric-unit">m</span></div></div>
+        <div class="metric"><div class="metric-label">CAP</div><div class="metric-value" id="mHeading">–<span class="metric-unit">°</span></div></div>
+        <div class="metric"><div class="metric-label">ACC</div><div class="metric-value" id="mAcc">–<span class="metric-unit">m/s²</span></div></div>
       </div>
     </div>
 
     <div class="section">
-      <div class="section-title">CALIBRATION</div>
-      <div class="slider-wrap">
-        <div class="slider-label">
-          <span>Longueur de pas</span>
-          <span id="stepLenVal">0.70 m</span>
-        </div>
-        <input type="range" id="stepLen" min="40" max="100" value="70">
-      </div>
-      <div class="slider-wrap" style="margin-top:6px">
-        <div class="slider-label">
-          <span>Seuil détection</span>
-          <span id="threshVal">1.20</span>
-        </div>
-        <input type="range" id="thresh" min="80" max="200" value="120">
-      </div>
+      <div class="sec-title">CONTRÔLES</div>
       <div class="btn-row">
         <button class="btn primary" id="btnTrack">▶ START</button>
         <button class="btn danger"  id="btnReset">RESET</button>
       </div>
       <div class="btn-row">
         <button class="btn success" id="btnExport">EXPORT</button>
-        <button class="btn" id="btnWaypoint">+ WP</button>
+        <button class="btn"         id="btnWaypoint">+ WP</button>
       </div>
     </div>
 
-    <div class="section-title" style="padding:10px 14px 0; font-family:var(--mono); font-size:.6rem; color:var(--accent); letter-spacing:2px;">WAYPOINTS</div>
-    <div class="waypoints-list" id="wpList"></div>
+    <div class="section">
+      <div class="sec-title">CALIBRATION</div>
+      <div class="slider-wrap">
+        <div class="slider-label"><span>Longueur pas</span><span id="stepLenVal">0.70 m</span></div>
+        <input type="range" id="stepLen" min="40" max="100" value="70">
+      </div>
+      <div class="slider-wrap" style="margin-top:4px">
+        <div class="slider-label"><span>Seuil détection</span><span id="threshVal">1.20</span></div>
+        <input type="range" id="thresh" min="80" max="200" value="120">
+      </div>
+    </div>
 
+    <div class="wp-sec-title">WAYPOINTS</div>
+    <div class="waypoints-list" id="wpList"></div>
     <div class="log" id="log"></div>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // STATE
-// ══════════════════════════════════════════════
-const state = {
-  tracking: false,
-  steps: 0,
-  heading: 0,          // degrees, 0 = North
-  position: {x:0, y:0}, // metres
-  path: [{x:0, y:0}],
-  waypoints: [],
-  stepLen: 0.70,
-  threshold: 1.20,
-  // sensor raw
-  acc: {x:0, y:0, z:0},
-  accMag: 0,
-  // step detection
-  lastAccMag: 0,
-  stepCooldown: 0,
-  // map view
-  scale: 80,           // px per metre
-  offset: {x:0, y:0}, // canvas offset
-  dragging: false,
-  dragStart: {x:0, y:0},
-  offsetStart: {x:0, y:0},
-  longPressTimer: null,
-  // orientation
-  hasOrientation: false,
-  alpha: 0, beta: 0, gamma: 0,
+// ═══════════════════════════════════════════
+const S = {
+  tracking:false, steps:0, heading:0,
+  position:{x:0,y:0}, path:[{x:0,y:0}],
+  waypoints:[],
+  stepLen:0.70, threshold:1.20,
+  accMag:0, lastAccMag:0, stepCooldown:0,
+  hasOrientation:false,
+  scale:80, offset:{x:0,y:0},
+  // map drag
+  dragging:false, dragStart:{x:0,y:0}, offsetStart:{x:0,y:0},
+  movedDuringPress:false, longPressTimer:null,
+  // wp drag
+  wpDragging:null, wpDragStartCanvas:{x:0,y:0}, wpDragStartWorld:{x:0,y:0},
+  wpTapOnly:false,
+  // popup
+  popupWpIdx:null,
 };
 
-// ══════════════════════════════════════════════
-// DOM
-// ══════════════════════════════════════════════
-const canvas    = document.getElementById('map');
-const ctx       = canvas.getContext('2d');
-const wrap      = document.getElementById('canvasWrap');
-const statusDot = document.getElementById('statusDot');
-const statusLbl = document.getElementById('statusLabel');
-const needle    = document.getElementById('needle');
+// ═══════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════
+const canvas = document.getElementById('map');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('canvasWrap');
+const needle = document.getElementById('needle');
 
-function resizeCanvas() {
+function resize() {
   canvas.width  = wrap.clientWidth;
   canvas.height = wrap.clientHeight;
-  if (state.offset.x === 0 && state.offset.y === 0) centerView();
   draw();
 }
+window.addEventListener('resize', resize);
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // LOG
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function log(msg, type='') {
   const el = document.getElementById('log');
   const d  = new Date();
-  const ts = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+  const ts = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
   const line = document.createElement('div');
-  line.className = `log-line ${type}`;
+  line.className = 'log-line '+type;
   line.textContent = `[${ts}] ${msg}`;
   el.appendChild(line);
   el.scrollTop = el.scrollHeight;
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // SENSORS
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function startSensors() {
-  // Motion (accelerometer + gyro)
+  // Motion
   if (typeof DeviceMotionEvent !== 'undefined') {
+    const go = () => { window.addEventListener('devicemotion', onMotion); log('Accéléromètre actif','info'); };
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
-      // iOS 13+
-      DeviceMotionEvent.requestPermission().then(r => {
-        if (r === 'granted') {
-          window.addEventListener('devicemotion', onMotion);
-          log('Accéléromètre OK (iOS)', 'info');
-        } else {
-          log('Permission accéléromètre refusée', 'err');
-          setStatus('error', 'PERM. REFUSÉE');
-        }
-      }).catch(e => { log('Erreur permission: '+e, 'err'); });
-    } else {
-      window.addEventListener('devicemotion', onMotion);
-      log('Accéléromètre OK', 'info');
-    }
-  } else {
-    log('DeviceMotion non supporté', 'warn');
-  }
+      DeviceMotionEvent.requestPermission()
+        .then(r => r==='granted' ? go() : (log('Permission mouvement refusée','err'), setStatus('error','PERM. REFUSÉE')))
+        .catch(e => log('Erreur: '+e,'err'));
+    } else go();
+  } else log('DeviceMotion non supporté','warn');
 
-  // Orientation (compass/gyro heading)
+  // Orientation
   if (typeof DeviceOrientationEvent !== 'undefined') {
+    const go = () => { window.addEventListener('deviceorientation', onOrientation); log('Orientation active','info'); };
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission().then(r => {
-        if (r === 'granted') {
-          window.addEventListener('deviceorientation', onOrientation);
-          log('Orientation OK (iOS)', 'info');
-        }
-      }).catch(() => {});
-    } else {
-      window.addEventListener('deviceorientation', onOrientation);
-      log('Orientation OK', 'info');
-    }
+      DeviceOrientationEvent.requestPermission().then(r => { if(r==='granted') go(); }).catch(()=>{});
+    } else go();
   }
 }
 
-// ── Orientation handler ──
 function onOrientation(e) {
-  state.hasOrientation = true;
-  state.alpha = e.alpha || 0;
-  state.beta  = e.beta  || 0;
-  state.gamma = e.gamma || 0;
-
-  // Compass heading: alpha = rotation autour Z (0=North sur certains devices)
-  // On utilise webkitCompassHeading si dispo (iOS), sinon alpha
-  if (e.webkitCompassHeading !== undefined) {
-    state.heading = e.webkitCompassHeading;
-  } else {
-    state.heading = (360 - e.alpha) % 360;
-  }
-
-  // Update needle
-  needle.style.transform = `translateX(-50%) translateY(-100%) rotate(${state.heading}deg)`;
-  document.getElementById('mHeading').innerHTML = Math.round(state.heading) + '<span class="metric-unit">°</span>';
+  S.hasOrientation = true;
+  S.heading = (e.webkitCompassHeading !== undefined)
+    ? e.webkitCompassHeading
+    : (360 - (e.alpha||0)) % 360;
+  needle.style.transform = `translateX(-50%) translateY(-100%) rotate(${S.heading}deg)`;
+  const h = Math.round(S.heading);
+  document.getElementById('mHeading').innerHTML = h+'<span class="metric-unit">°</span>';
+  document.getElementById('hHead').textContent  = h+'°';
 }
 
-// ── Motion / step detection ──
-let lastTime = 0;
+let lastMotionTime = 0;
 function onMotion(e) {
   const acc = e.accelerationIncludingGravity;
   if (!acc) return;
-
-  state.acc = { x: acc.x||0, y: acc.y||0, z: acc.z||0 };
-  const mag = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
-  state.accMag = mag;
-  document.getElementById('mAcc').innerHTML = mag.toFixed(1) + '<span class="metric-unit"> m/s²</span>';
-
-  if (!state.tracking) return;
-
-  // Step detection: zero-crossing on filtered acceleration
-  const now = Date.now();
-  const dt  = now - lastTime;
-  lastTime  = now;
-
-  state.stepCooldown = Math.max(0, state.stepCooldown - dt);
-
-  // Simple peak detection
-  const threshold = state.threshold + 9.81; // add gravity baseline
-  if (mag > threshold && state.lastAccMag <= threshold && state.stepCooldown <= 0) {
-    detectStep();
-    state.stepCooldown = 300; // min 300ms between steps
-  }
-  state.lastAccMag = mag;
+  const mag = Math.sqrt((acc.x||0)**2+(acc.y||0)**2+(acc.z||0)**2);
+  S.accMag = mag;
+  document.getElementById('mAcc').innerHTML = mag.toFixed(1)+'<span class="metric-unit">m/s²</span>';
+  if (!S.tracking) return;
+  const now = Date.now(), dt = now - lastMotionTime;
+  lastMotionTime = now;
+  S.stepCooldown = Math.max(0, S.stepCooldown - dt);
+  const thr = S.threshold + 9.81;
+  if (mag > thr && S.lastAccMag <= thr && S.stepCooldown <= 0) { doStep(); S.stepCooldown = 300; }
+  S.lastAccMag = mag;
 }
 
-function detectStep() {
-  state.steps++;
-  const rad = (state.heading - 90) * Math.PI / 180; // convert to canvas angle
-  const dx  = Math.cos(rad) * state.stepLen;
-  const dy  = Math.sin(rad) * state.stepLen;
-
-  state.position.x += dx;
-  state.position.y += dy;
-  state.path.push({x: state.position.x, y: state.position.y});
-
-  const dist = state.steps * state.stepLen;
-  document.getElementById('mSteps').textContent = state.steps;
-  document.getElementById('mDist').innerHTML = dist.toFixed(1) + '<span class="metric-unit"> m</span>';
-
+function doStep() {
+  S.steps++;
+  const rad = (S.heading - 90) * Math.PI / 180;
+  S.position.x += Math.cos(rad) * S.stepLen;
+  S.position.y += Math.sin(rad) * S.stepLen;
+  S.path.push({x:S.position.x, y:S.position.y});
+  const dist = (S.steps * S.stepLen).toFixed(1);
+  document.getElementById('mSteps').textContent  = S.steps;
+  document.getElementById('mDist').innerHTML     = dist+'<span class="metric-unit">m</span>';
+  document.getElementById('hSteps').textContent  = S.steps;
+  document.getElementById('hDist').textContent   = dist+'m';
   draw();
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // WAYPOINTS
-// ══════════════════════════════════════════════
-function addWaypoint(worldX, worldY, label) {
-  const id = state.waypoints.length + 1;
-  const wp = { id, x: worldX, y: worldY, label: label || `WP${id}` };
-  state.waypoints.push(wp);
-  renderWpList();
-  log(`Waypoint ${wp.label} posé (${worldX.toFixed(1)}, ${worldY.toFixed(1)})`, 'info');
-  draw();
+// ═══════════════════════════════════════════
+function addWaypoint(wx, wy, label) {
+  const wp = { id: Date.now(), x:wx, y:wy, label: label || `WP${S.waypoints.length+1}` };
+  S.waypoints.push(wp);
+  renderWpList(); draw();
+  log(`${wp.label} → (${wx.toFixed(1)}, ${wy.toFixed(1)}) m`, 'info');
 }
-
-function addWaypointAtCurrentPos() {
-  addWaypoint(state.position.x, state.position.y);
-}
+function addWaypointAtPos() { addWaypoint(S.position.x, S.position.y); }
+function deleteWaypoint(idx) { S.waypoints.splice(idx,1); renderWpList(); draw(); }
 
 function renderWpList() {
   const el = document.getElementById('wpList');
   el.innerHTML = '';
-  state.waypoints.forEach((wp, i) => {
+  S.waypoints.forEach((wp, i) => {
     const row = document.createElement('div');
     row.className = 'waypoint-item';
+    row.id = 'wpr-'+wp.id;
     row.innerHTML = `
-      <div class="wp-badge">${wp.id}</div>
-      <div class="wp-info">${wp.label}<br><span style="font-size:.5rem">(${wp.x.toFixed(1)}, ${wp.y.toFixed(1)}) m</span></div>
-      <button class="wp-del" data-i="${i}">✕</button>
-    `;
+      <div class="wp-badge">${i+1}</div>
+      <div class="wp-info">
+        <input class="wp-name-edit" data-i="${i}" value="${wp.label}" maxlength="24">
+        <div class="wp-coords">(${wp.x.toFixed(1)}, ${wp.y.toFixed(1)}) m</div>
+      </div>
+      <button class="wp-del" data-i="${i}">✕</button>`;
     el.appendChild(row);
   });
-  el.querySelectorAll('.wp-del').forEach(b => {
-    b.addEventListener('click', e => {
-      state.waypoints.splice(+e.target.dataset.i, 1);
-      state.waypoints.forEach((w,j) => w.id = j+1);
-      renderWpList(); draw();
-    });
-  });
+  el.querySelectorAll('.wp-del').forEach(b => b.addEventListener('click', e => deleteWaypoint(+e.currentTarget.dataset.i)));
+  el.querySelectorAll('.wp-name-edit').forEach(inp => inp.addEventListener('change', e => {
+    S.waypoints[+e.target.dataset.i].label = e.target.value.trim() || `WP${+e.target.dataset.i+1}`;
+    draw();
+  }));
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════
+// POPUP
+// ═══════════════════════════════════════════
+const wpPopup = document.getElementById('wpPopup');
+
+function openWpPopup(idx, clientX, clientY) {
+  S.popupWpIdx = idx;
+  document.getElementById('wpPopupName').value = S.waypoints[idx].label;
+  wpPopup.style.display = 'flex';
+  const pw=185, ph=115;
+  let left = clientX+12, top = clientY-20;
+  if (left+pw > window.innerWidth)  left = clientX-pw-12;
+  if (top+ph  > window.innerHeight) top  = window.innerHeight-ph-8;
+  if (top < 8) top = 8;
+  wpPopup.style.left = left+'px';
+  wpPopup.style.top  = top+'px';
+  setTimeout(() => document.getElementById('wpPopupName').focus(), 50);
+}
+function closeWpPopup() { wpPopup.style.display='none'; S.popupWpIdx=null; }
+
+document.getElementById('ppOk').addEventListener('click', () => {
+  if (S.popupWpIdx===null) return;
+  S.waypoints[S.popupWpIdx].label = document.getElementById('wpPopupName').value.trim() || S.waypoints[S.popupWpIdx].label;
+  renderWpList(); draw(); closeWpPopup();
+});
+document.getElementById('ppCancel').addEventListener('click', closeWpPopup);
+document.getElementById('ppDel').addEventListener('click', () => {
+  if (S.popupWpIdx===null) return;
+  deleteWaypoint(S.popupWpIdx); closeWpPopup();
+});
+document.getElementById('wpPopupName').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('ppOk').click(); });
+
+// ═══════════════════════════════════════════
+// COORDS
+// ═══════════════════════════════════════════
+function w2c(wx,wy) { return { x:canvas.width/2+S.offset.x+wx*S.scale, y:canvas.height/2+S.offset.y+wy*S.scale }; }
+function c2w(cx,cy) { return { x:(cx-canvas.width/2-S.offset.x)/S.scale, y:(cy-canvas.height/2-S.offset.y)/S.scale }; }
+
+function hitWP(cx, cy, r=24) {
+  for (let i=S.waypoints.length-1; i>=0; i--) {
+    const p = w2c(S.waypoints[i].x, S.waypoints[i].y);
+    const dx=cx-p.x, dy=cy-(p.y-10);
+    if (Math.sqrt(dx*dx+dy*dy)<r) return i;
+  }
+  return -1;
+}
+
+// ═══════════════════════════════════════════
 // DRAW
-// ══════════════════════════════════════════════
-function worldToCanvas(wx, wy) {
-  return {
-    x: canvas.width/2  + state.offset.x + wx * state.scale,
-    y: canvas.height/2 + state.offset.y + wy * state.scale,
-  };
-}
-function canvasToWorld(cx, cy) {
-  return {
-    x: (cx - canvas.width/2  - state.offset.x) / state.scale,
-    y: (cy - canvas.height/2 - state.offset.y) / state.scale,
-  };
-}
-
+// ═══════════════════════════════════════════
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // ── Grid (world-aligned) ──
-  const gridSize = 1; // 1 metre
-  const pxGrid   = gridSize * state.scale;
-  const ox = (canvas.width/2 + state.offset.x) % pxGrid;
-  const oy = (canvas.height/2 + state.offset.y) % pxGrid;
+  // Grid
+  const px=S.scale;
+  const ox=(canvas.width/2+S.offset.x)%px, oy=(canvas.height/2+S.offset.y)%px;
+  ctx.strokeStyle='rgba(30,37,48,.5)'; ctx.lineWidth=1;
+  for(let x=ox; x<canvas.width; x+=px){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+  for(let y=oy; y<canvas.height; y+=px){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
 
-  ctx.strokeStyle = 'rgba(30,37,48,.6)';
-  ctx.lineWidth = 1;
-  for (let x = ox; x < canvas.width; x += pxGrid) {
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, canvas.height); ctx.stroke();
-  }
-  for (let y = oy; y < canvas.height; y += pxGrid) {
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width, y); ctx.stroke();
-  }
-
-  // ── Origin cross ──
-  const o = worldToCanvas(0,0);
-  ctx.strokeStyle = 'rgba(0,229,255,.3)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4,4]);
-  ctx.beginPath(); ctx.moveTo(o.x-20,o.y); ctx.lineTo(o.x+20,o.y); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(o.x,o.y-20); ctx.lineTo(o.x,o.y+20); ctx.stroke();
+  // Origin
+  const o=w2c(0,0);
+  ctx.strokeStyle='rgba(0,229,255,.22)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+  ctx.beginPath();ctx.moveTo(o.x-16,o.y);ctx.lineTo(o.x+16,o.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(o.x,o.y-16);ctx.lineTo(o.x,o.y+16);ctx.stroke();
   ctx.setLineDash([]);
 
-  // ── Path ──
-  if (state.path.length > 1) {
-    ctx.strokeStyle = 'rgba(0,229,255,.7)';
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    const p0 = worldToCanvas(state.path[0].x, state.path[0].y);
-    ctx.moveTo(p0.x, p0.y);
-    for (let i = 1; i < state.path.length; i++) {
-      const p = worldToCanvas(state.path[i].x, state.path[i].y);
-      ctx.lineTo(p.x, p.y);
-    }
-    ctx.stroke();
-
-    // Path glow
-    ctx.strokeStyle = 'rgba(0,229,255,.15)';
-    ctx.lineWidth = 6;
-    ctx.stroke();
+  // Path
+  if (S.path.length>1) {
+    const draw_path = () => {
+      const p0=w2c(S.path[0].x,S.path[0].y);
+      ctx.beginPath(); ctx.moveTo(p0.x,p0.y);
+      for(let i=1;i<S.path.length;i++){const p=w2c(S.path[i].x,S.path[i].y);ctx.lineTo(p.x,p.y);}
+    };
+    draw_path(); ctx.strokeStyle='rgba(0,229,255,.1)';  ctx.lineWidth=8; ctx.lineJoin='round'; ctx.stroke();
+    draw_path(); ctx.strokeStyle='rgba(0,229,255,.75)'; ctx.lineWidth=2; ctx.stroke();
   }
 
-  // ── Start marker ──
-  const s = worldToCanvas(0, 0);
-  ctx.fillStyle = 'rgba(127,255,110,.9)';
-  ctx.beginPath(); ctx.arc(s.x, s.y, 6, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'var(--bg)';
-  ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2); ctx.fill();
+  // Start
+  ctx.fillStyle='rgba(127,255,110,.9)';
+  ctx.beginPath();ctx.arc(o.x,o.y,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#0a0c0f';
+  ctx.beginPath();ctx.arc(o.x,o.y,2.5,0,Math.PI*2);ctx.fill();
 
-  // ── Waypoints ──
-  state.waypoints.forEach(wp => {
-    const p = worldToCanvas(wp.x, wp.y);
-    ctx.fillStyle = '#ff4d6d';
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
-    // pin shape
-    ctx.beginPath();
-    ctx.arc(p.x, p.y-10, 7, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 8px Share Tech Mono';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(wp.id, p.x, p.y-10);
+  // Waypoints
+  S.waypoints.forEach((wp,i) => {
+    const p=w2c(wp.x,wp.y);
+    const dragging=(S.wpDragging===i);
+    ctx.globalAlpha = dragging ? 0.35 : 1;
+    // shadow for dragged WP
+    if (dragging) { ctx.shadowColor='#ff4d6d'; ctx.shadowBlur=16; }
+    // pin circle
+    ctx.fillStyle='#ff4d6d'; ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(p.x,p.y-10,8,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    // pin tail
+    ctx.fillStyle='#ff4d6d';
+    ctx.beginPath(); ctx.moveTo(p.x-4,p.y-4); ctx.lineTo(p.x+4,p.y-4); ctx.lineTo(p.x,p.y+2); ctx.closePath(); ctx.fill();
+    // number
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#fff'; ctx.font='bold 8px Share Tech Mono'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(i+1,p.x,p.y-10);
     // label
-    ctx.fillStyle = 'rgba(255,77,109,.85)';
-    ctx.font = '10px Barlow Condensed';
-    ctx.textAlign = 'left';
-    ctx.fillText(wp.label, p.x+10, p.y-10);
+    ctx.fillStyle='rgba(255,100,120,.92)'; ctx.font='11px Barlow Condensed'; ctx.textAlign='left';
+    ctx.fillText(wp.label,p.x+12,p.y-10);
+    ctx.globalAlpha=1; ctx.shadowBlur=0;
   });
 
-  // ── Current position ──
-  const cur = worldToCanvas(state.position.x, state.position.y);
-
-  // Direction cone
-  if (state.hasOrientation) {
-    const rad = (state.heading - 90) * Math.PI / 180;
-    const coneLen = 30;
-    const coneAngle = 0.35;
-    ctx.fillStyle = 'rgba(0,229,255,.12)';
-    ctx.beginPath();
-    ctx.moveTo(cur.x, cur.y);
-    ctx.arc(cur.x, cur.y, coneLen, rad - coneAngle, rad + coneAngle);
-    ctx.closePath();
-    ctx.fill();
+  // Ghost ring for WP being dragged
+  if (S.wpDragging!==null) {
+    const wp=S.waypoints[S.wpDragging]; const p=w2c(wp.x,wp.y);
+    ctx.strokeStyle='rgba(255,77,109,.8)'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.arc(p.x,p.y-10,13,0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
   }
 
-  // Pulse ring
-  const t = Date.now() % 1500 / 1500;
-  ctx.strokeStyle = `rgba(0,229,255,${(1-t)*.5})`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(cur.x, cur.y, 8 + t*16, 0, Math.PI*2);
-  ctx.stroke();
+  // Current position
+  const cur=w2c(S.position.x,S.position.y);
 
-  // Dot
-  ctx.fillStyle = '#00e5ff';
-  ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = 12;
-  ctx.beginPath(); ctx.arc(cur.x, cur.y, 7, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // Heading arrow
-  if (state.hasOrientation) {
-    const rad = (state.heading - 90) * Math.PI / 180;
-    const ax = cur.x + Math.cos(rad) * 14;
-    const ay = cur.y + Math.sin(rad) * 14;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(cur.x, cur.y); ctx.lineTo(ax, ay); ctx.stroke();
+  if (S.hasOrientation) {
+    const rad=(S.heading-90)*Math.PI/180;
+    ctx.fillStyle='rgba(0,229,255,.09)';
+    ctx.beginPath(); ctx.moveTo(cur.x,cur.y);
+    ctx.arc(cur.x,cur.y,36,rad-.3,rad+.3); ctx.closePath(); ctx.fill();
   }
 
-  // ── Ruler update ──
-  const rulerMetres = 60 / state.scale;
-  document.getElementById('rulerLabel').textContent =
-    rulerMetres >= 1 ? Math.round(rulerMetres) + ' m'
-                     : Math.round(rulerMetres*100) + ' cm';
+  const t=Date.now()%1500/1500;
+  ctx.strokeStyle=`rgba(0,229,255,${(1-t)*.4})`; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(cur.x,cur.y,8+t*18,0,Math.PI*2); ctx.stroke();
 
-  // Schedule next frame for pulse animation
-  if (state.tracking) requestAnimationFrame(draw);
+  ctx.fillStyle='#00e5ff'; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=14;
+  ctx.beginPath(); ctx.arc(cur.x,cur.y,7,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+
+  if (S.hasOrientation) {
+    const rad=(S.heading-90)*Math.PI/180;
+    ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cur.x,cur.y);
+    ctx.lineTo(cur.x+Math.cos(rad)*15,cur.y+Math.sin(rad)*15); ctx.stroke();
+  }
+
+  // Ruler
+  const rm=50/S.scale;
+  document.getElementById('rulerLabel').textContent = rm>=1 ? Math.round(rm)+' m' : Math.round(rm*100)+' cm';
 }
 
-// ══════════════════════════════════════════════
-// VIEW CONTROLS
-// ══════════════════════════════════════════════
-function centerView() {
-  state.offset.x = -state.position.x * state.scale;
-  state.offset.y = -state.position.y * state.scale;
-  draw();
+// ═══════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════
+function getXY(e) {
+  const src = e.touches ? e.touches[0] : e;
+  const rect = canvas.getBoundingClientRect();
+  return { x:src.clientX-rect.left, y:src.clientY-rect.top, clientX:src.clientX, clientY:src.clientY };
 }
 
-document.getElementById('zoomIn').addEventListener('click', () => {
-  state.scale = Math.min(state.scale * 1.3, 400);
-  draw();
-});
-document.getElementById('zoomOut').addEventListener('click', () => {
-  state.scale = Math.max(state.scale / 1.3, 10);
-  draw();
-});
-document.getElementById('centerBtn').addEventListener('click', centerView);
+canvas.addEventListener('mousedown',  onDown);
+canvas.addEventListener('touchstart', onDown, {passive:false});
 
-// Wheel zoom
-canvas.addEventListener('wheel', e => {
+function onDown(e) {
+  if (e.touches && e.touches.length>1) return;
   e.preventDefault();
-  const factor = e.deltaY < 0 ? 1.1 : 0.9;
-  state.scale = Math.min(400, Math.max(10, state.scale * factor));
-  draw();
-}, {passive: false});
+  if (wpPopup.style.display!=='none') { closeWpPopup(); return; }
 
-// ── Drag to pan ──
-function getPos(e) {
-  if (e.touches) return {x: e.touches[0].clientX, y: e.touches[0].clientY};
-  return {x: e.clientX, y: e.clientY};
-}
+  const p = getXY(e);
+  const wpIdx = hitWP(p.x, p.y);
 
-canvas.addEventListener('mousedown',  startDrag);
-canvas.addEventListener('touchstart', startDrag, {passive: false});
+  if (wpIdx !== -1) {
+    // Begin WP drag
+    S.wpDragging = wpIdx;
+    S.wpTapOnly  = true;
+    S.wpDragStartCanvas = {x:p.x, y:p.y};
+    S.wpDragStartWorld  = {x:S.waypoints[wpIdx].x, y:S.waypoints[wpIdx].y};
+    document.getElementById('wpr-'+S.waypoints[wpIdx].id)?.classList.add('wp-dragging-list');
+    draw();
+    return;
+  }
 
-function startDrag(e) {
-  if (e.touches && e.touches.length > 1) return;
-  state.dragging = true;
-  const p = getPos(e);
-  state.dragStart  = p;
-  state.offsetStart = {...state.offset};
+  // Map drag
+  S.dragging = true;
+  S.movedDuringPress = false;
+  S.dragStart   = p;
+  S.offsetStart = {...S.offset};
 
-  // Long press = add waypoint
-  state.longPressTimer = setTimeout(() => {
-    if (!state.dragging || (Math.abs(state.offset.x - state.offsetStart.x) < 5)) {
-      const rect = canvas.getBoundingClientRect();
-      const cx = p.x - rect.left;
-      const cy = p.y - rect.top;
-      const w = canvasToWorld(cx, cy);
+  S.longPressTimer = setTimeout(() => {
+    if (!S.movedDuringPress) {
+      const w = c2w(p.x, p.y);
       addWaypoint(w.x, w.y);
+      if (navigator.vibrate) navigator.vibrate(35);
     }
-  }, 600);
+  }, 550);
 }
 
-window.addEventListener('mousemove',  doDrag);
-window.addEventListener('touchmove',  doDrag, {passive: false});
-function doDrag(e) {
-  if (!state.dragging) return;
+window.addEventListener('mousemove',  onMove);
+window.addEventListener('touchmove',  onMove, {passive:false});
+
+function onMove(e) {
+  if (e.touches && e.touches.length>1) return;
   e.preventDefault();
-  const p = getPos(e);
-  const dx = p.x - state.dragStart.x;
-  const dy = p.y - state.dragStart.y;
-  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) clearTimeout(state.longPressTimer);
-  state.offset.x = state.offsetStart.x + dx;
-  state.offset.y = state.offsetStart.y + dy;
+
+  if (S.wpDragging !== null) {
+    const p = getXY(e);
+    const dx = p.x - S.wpDragStartCanvas.x;
+    const dy = p.y - S.wpDragStartCanvas.y;
+    // if moved enough, it's a real drag
+    if (Math.sqrt(dx*dx+dy*dy) > 8) S.wpTapOnly = false;
+
+    const w = c2w(p.x, p.y+10); // +10 offset for pin tip
+    S.waypoints[S.wpDragging].x = w.x;
+    S.waypoints[S.wpDragging].y = w.y;
+    // live update coords in list
+    const row = document.getElementById('wpr-'+S.waypoints[S.wpDragging].id);
+    if (row) row.querySelector('.wp-coords').textContent = `(${w.x.toFixed(1)}, ${w.y.toFixed(1)}) m`;
+    draw();
+    return;
+  }
+
+  if (!S.dragging) return;
+  const p = getXY(e);
+  const dx = p.x-S.dragStart.x, dy = p.y-S.dragStart.y;
+  if (Math.abs(dx)>6||Math.abs(dy)>6) { S.movedDuringPress=true; clearTimeout(S.longPressTimer); }
+  S.offset.x = S.offsetStart.x+dx;
+  S.offset.y = S.offsetStart.y+dy;
   draw();
 }
 
-window.addEventListener('mouseup',   endDrag);
-window.addEventListener('touchend',  endDrag);
-function endDrag() {
-  state.dragging = false;
-  clearTimeout(state.longPressTimer);
+window.addEventListener('mouseup',  onUp);
+window.addEventListener('touchend', onUp);
+
+function onUp(e) {
+  if (S.wpDragging !== null) {
+    const wp = S.waypoints[S.wpDragging];
+    document.getElementById('wpr-'+wp.id)?.classList.remove('wp-dragging-list');
+
+    if (S.wpTapOnly) {
+      // Restore original position (it was a tap, not a drag)
+      S.waypoints[S.wpDragging].x = S.wpDragStartWorld.x;
+      S.waypoints[S.wpDragging].y = S.wpDragStartWorld.y;
+      // Open popup
+      const src = e.changedTouches ? e.changedTouches[0] : e;
+      openWpPopup(S.wpDragging, src.clientX, src.clientY);
+    } else {
+      // Real drag ended: finalize and update list
+      renderWpList();
+      log(`${wp.label} déplacé → (${wp.x.toFixed(1)}, ${wp.y.toFixed(1)}) m`, 'info');
+    }
+    S.wpDragging = null;
+    draw();
+    return;
+  }
+  S.dragging = false;
+  clearTimeout(S.longPressTimer);
 }
 
 // Pinch zoom
-let lastPinchDist = null;
+let lastPinch=null;
 canvas.addEventListener('touchmove', e => {
-  if (e.touches.length === 2) {
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (lastPinchDist) {
-      state.scale = Math.min(400, Math.max(10, state.scale * (dist / lastPinchDist)));
-      draw();
-    }
-    lastPinchDist = dist;
-  }
-}, {passive: false});
-canvas.addEventListener('touchend', () => { lastPinchDist = null; });
+  if(e.touches.length!==2)return;
+  const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+  const d=Math.sqrt(dx*dx+dy*dy);
+  if(lastPinch) S.scale=Math.min(400,Math.max(8,S.scale*d/lastPinch));
+  lastPinch=d; draw();
+},{passive:false});
+canvas.addEventListener('touchend', ()=>{ lastPinch=null; });
 
-// ══════════════════════════════════════════════
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  S.scale=Math.min(400,Math.max(8,S.scale*(e.deltaY<0?1.1:0.9))); draw();
+},{passive:false});
+
+// ═══════════════════════════════════════════
+// VIEW
+// ═══════════════════════════════════════════
+function centerView() { S.offset.x=-S.position.x*S.scale; S.offset.y=-S.position.y*S.scale; draw(); }
+document.getElementById('zoomIn').addEventListener('click',    ()=>{ S.scale=Math.min(400,S.scale*1.3); draw(); });
+document.getElementById('zoomOut').addEventListener('click',   ()=>{ S.scale=Math.max(8,  S.scale/1.3); draw(); });
+document.getElementById('centerBtn').addEventListener('click', centerView);
+
+// Panel toggle
+document.getElementById('panelToggle').addEventListener('click', ()=> document.getElementById('panel').classList.toggle('open'));
+
+// ═══════════════════════════════════════════
 // CONTROLS
-// ══════════════════════════════════════════════
-document.getElementById('btnTrack').addEventListener('click', () => {
-  state.tracking = !state.tracking;
-  const btn = document.getElementById('btnTrack');
-  if (state.tracking) {
-    btn.textContent = '⏸ PAUSE';
-    btn.classList.remove('primary');
-    btn.classList.add('danger');
-    setStatus('active', 'TRACKING');
-    log('Tracking démarré', 'info');
-    lastTime = Date.now();
-    requestAnimationFrame(draw);
+// ═══════════════════════════════════════════
+document.getElementById('btnTrack').addEventListener('click', ()=>{
+  S.tracking=!S.tracking;
+  const btn=document.getElementById('btnTrack');
+  if(S.tracking){
+    btn.textContent='⏸ PAUSE'; btn.className='btn danger';
+    setStatus('active','TRACKING'); log('Tracking démarré','info');
+    lastMotionTime=Date.now();
+    // start anim loop
+    (function loop(){ if(S.tracking){ draw(); requestAnimationFrame(loop); }})();
   } else {
-    btn.textContent = '▶ START';
-    btn.classList.add('primary');
-    btn.classList.remove('danger');
-    setStatus('', 'EN PAUSE');
-    log('Tracking en pause');
+    btn.textContent='▶ START'; btn.className='btn primary';
+    setStatus('','EN PAUSE'); log('Tracking en pause');
   }
 });
 
-document.getElementById('btnReset').addEventListener('click', () => {
-  if (!confirm('Réinitialiser la trajectoire ?')) return;
-  state.steps = 0;
-  state.position = {x:0, y:0};
-  state.path = [{x:0, y:0}];
-  state.waypoints = [];
-  state.tracking = false;
-  document.getElementById('btnTrack').textContent = '▶ START';
-  document.getElementById('btnTrack').classList.add('primary');
-  document.getElementById('btnTrack').classList.remove('danger');
-  document.getElementById('mSteps').textContent = '0';
-  document.getElementById('mDist').innerHTML = '0.0<span class="metric-unit"> m</span>';
-  renderWpList();
-  setStatus('', 'RESET');
-  log('Trajectoire réinitialisée', 'warn');
-  centerView();
+document.getElementById('btnReset').addEventListener('click', ()=>{
+  if(!confirm('Réinitialiser la trajectoire ?')) return;
+  S.steps=0; S.position={x:0,y:0}; S.path=[{x:0,y:0}]; S.waypoints=[]; S.tracking=false;
+  document.getElementById('btnTrack').textContent='▶ START';
+  document.getElementById('btnTrack').className='btn primary';
+  ['mSteps','hSteps'].forEach(id=>document.getElementById(id).textContent='0');
+  document.getElementById('mDist').innerHTML='0.0<span class="metric-unit">m</span>';
+  document.getElementById('hDist').textContent='0.0m';
+  renderWpList(); setStatus('','RESET'); log('Reset','warn'); centerView();
 });
 
-document.getElementById('btnWaypoint').addEventListener('click', addWaypointAtCurrentPos);
+document.getElementById('btnWaypoint').addEventListener('click', addWaypointAtPos);
 
-document.getElementById('stepLen').addEventListener('input', e => {
-  state.stepLen = e.target.value / 100;
-  document.getElementById('stepLenVal').textContent = state.stepLen.toFixed(2) + ' m';
+document.getElementById('stepLen').addEventListener('input', e=>{
+  S.stepLen=e.target.value/100;
+  document.getElementById('stepLenVal').textContent=S.stepLen.toFixed(2)+' m';
+});
+document.getElementById('thresh').addEventListener('input', e=>{
+  S.threshold=e.target.value/100;
+  document.getElementById('threshVal').textContent=S.threshold.toFixed(2);
 });
 
-document.getElementById('thresh').addEventListener('input', e => {
-  state.threshold = e.target.value / 100;
-  document.getElementById('threshVal').textContent = state.threshold.toFixed(2);
+document.getElementById('btnExport').addEventListener('click', ()=>{
+  const d={date:new Date().toISOString(),steps:S.steps,distance:(S.steps*S.stepLen).toFixed(2),stepLength:S.stepLen,path:S.path,waypoints:S.waypoints};
+  const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`indoortrace_${Date.now()}.json`; a.click();
+  log('Export JSON téléchargé','info');
 });
 
-// ── Export ──
-document.getElementById('btnExport').addEventListener('click', () => {
-  const data = {
-    date: new Date().toISOString(),
-    steps: state.steps,
-    distance: (state.steps * state.stepLen).toFixed(2),
-    stepLength: state.stepLen,
-    path: state.path,
-    waypoints: state.waypoints,
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `indoortrace_${Date.now()}.json`;
-  a.click();
-  log('Export JSON téléchargé', 'info');
-});
-
-// ══════════════════════════════════════════════
-// STATUS
-// ══════════════════════════════════════════════
 function setStatus(type, msg) {
-  statusDot.className = 'status-dot' + (type ? ' '+type : '');
-  statusLbl.textContent = msg;
+  document.getElementById('statusDot').className='status-dot'+(type?' '+type:'');
+  document.getElementById('statusLabel').textContent=msg;
 }
 
-// ══════════════════════════════════════════════
-// START BUTTON
-// ══════════════════════════════════════════════
-document.getElementById('startBtn').addEventListener('click', () => {
-  document.getElementById('overlay').style.display = 'none';
+// ═══════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  document.getElementById('overlay').style.display='none';
   startSensors();
-  setStatus('active', 'CAPTEURS ACTIFS');
-  log('Application démarrée', 'info');
-  log('Tap long sur la carte pour ajouter un waypoint', 'info');
-  resizeCanvas();
+  setStatus('active','CAPTEURS ACTIFS');
+  log('Application démarrée','info');
+  log('Tap long → nouveau WP  |  Tap WP → éditer  |  Glisser WP → déplacer','info');
+  resize();
   centerView();
-  draw();
+  // Idle anim loop (pulse)
+  (function idle(){ draw(); setTimeout(idle,50); })();
 });
 
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-// Animation loop for pulse even when not tracking
-function animLoop() {
-  if (!state.tracking) draw();
-  setTimeout(animLoop, 50);
-}
-// Start lightweight loop after init
-setTimeout(() => { if (!state.tracking) animLoop(); }, 1000);
+resize();
 </script>
 </body>
 </html>
